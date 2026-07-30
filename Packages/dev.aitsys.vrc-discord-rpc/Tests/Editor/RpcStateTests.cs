@@ -4,15 +4,15 @@ namespace AITSYS.VRCUnity.DiscordRPC.Tests
 {
     public sealed class RpcStateTests
     {
-        [TestCase(RpcState.EditMode, "In Edit Mode")]
-        [TestCase(RpcState.PlayMode, "In Play Mode")]
-        [TestCase(RpcState.BuildAvatar, "Building Avatar")]
-        [TestCase(RpcState.UploadAvatar, "Uploading Avatar")]
-        [TestCase(RpcState.BuildWorld, "Building World")]
-        [TestCase(RpcState.UploadWorld, "Uploading World")]
-        public void StateLabelsAreStable(RpcState state, string expected)
+        [TestCase((int)RpcState.EditMode, "In Edit Mode")]
+        [TestCase((int)RpcState.PlayMode, "In Play Mode")]
+        [TestCase((int)RpcState.BuildAvatar, "Building Avatar")]
+        [TestCase((int)RpcState.UploadAvatar, "Uploading Avatar")]
+        [TestCase((int)RpcState.BuildWorld, "Building World")]
+        [TestCase((int)RpcState.UploadWorld, "Uploading World")]
+        public void StateLabelsAreStable(int state, string expected)
         {
-            Assert.AreEqual(expected, state.DisplayName());
+            Assert.AreEqual(expected, ((RpcState)state).DisplayName());
         }
 
         [Test]
