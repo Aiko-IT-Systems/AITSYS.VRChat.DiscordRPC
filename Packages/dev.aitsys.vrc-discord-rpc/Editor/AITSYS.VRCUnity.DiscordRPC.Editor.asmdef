@@ -1,0 +1,20 @@
+{
+  "name": "AITSYS.VRCUnity.DiscordRPC.Editor",
+  "rootNamespace": "AITSYS.VRCUnity.DiscordRPC",
+  "references": [
+    "AITSYS.VRCUnity.DiscordRPC.Compatibility",
+    "VRC.SDKBase",
+    "VRC.SDKBase.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

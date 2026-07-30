@@ -1,0 +1,16 @@
+{
+  "name": "AITSYS.VRCUnity.DiscordRPC.Compatibility",
+  "rootNamespace": "AITSYS",
+  "references": [],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "UNITY_EDITOR"
+  ],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

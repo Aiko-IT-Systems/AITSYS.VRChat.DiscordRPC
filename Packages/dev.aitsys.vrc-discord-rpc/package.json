@@ -1,0 +1,36 @@
+{
+  "name": "dev.aitsys.vrc-discord-rpc",
+  "displayName": "VRC Unity Discord RPC",
+  "version": "1.0.0",
+  "unity": "2022.3",
+  "unityRelease": "22f1",
+  "description": "Discord Rich Presence for Unity projects using the VRChat SDK.",
+  "license": "MIT",
+  "documentationUrl": "https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC/tree/main/Packages/dev.aitsys.vrc-discord-rpc#readme",
+  "changelogUrl": "https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC/blob/main/Packages/dev.aitsys.vrc-discord-rpc/CHANGELOG.md",
+  "licensesUrl": "https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC/blob/main/Packages/dev.aitsys.vrc-discord-rpc/LICENSE.md",
+  "keywords": [
+    "AITSYS",
+    "Discord",
+    "Rich Presence",
+    "VRChat"
+  ],
+  "author": {
+    "name": "Lala Sabathil",
+    "email": "aiko@aitsys.dev",
+    "url": "https://github.com/Lulalaby"
+  },
+  "url": "https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC",
+  "repo": "https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC.git",
+  "legacyFolders": {
+    "Assets/AITSYS/Editor/DiscordRPC": "",
+    "Assets/DiscordRPC": ""
+  },
+  "legacyFiles": {
+    "Assets/AITSYS/Runtime/Scripts/DiscordRPCSettings.cs": "",
+    "Assets/AITSYS/Runtime/Scripts/DiscordRPCSettings.cs.meta": ""
+  },
+  "vpmDependencies": {
+    "com.vrchat.base": ">=3.10.0"
+  }
+}
