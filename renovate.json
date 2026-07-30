@@ -3,5 +3,11 @@
 	"extends": [
 		"local>Aiko-IT-Systems/renovate-config",
 		":dependencyDashboard"
+	],
+	"packageRules": [
+		{
+			"matchManagers": ["unity3d"],
+			"enabled": false
+		}
 	]
 }
