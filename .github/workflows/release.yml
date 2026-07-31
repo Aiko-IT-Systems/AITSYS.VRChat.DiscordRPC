@@ -5,6 +5,9 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
 
 jobs:
 
@@ -32,19 +35,38 @@ jobs:
     runs-on: ubuntu-latest
     env:
       packagePath: Packages/${{ vars.PACKAGE_NAME }}
-      assetStoreProject: .build/asset-store-project
-      GH_TOKEN: ${{ github.token }}
+      vpmPackagePath: .build/vpm-package
+      vpmOutputPath: .build/vpm-output
+      assetStorePackagePath: .build/asset-store-package
+      assetStoreOutputPath: .build/asset-store-output
     if: needs.config.outputs.config_package == 'true'
     steps:
 
       # Checkout Local Repository
       - name: Checkout
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Validate Release Credentials
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.NYUW_GPG_PRIV }}
+          GH_TOKEN: ${{ secrets.NYUW_TOKEN_GH }}
+        run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "The NYUW_GPG_PRIV organization secret is unavailable."
+            exit 1
+          fi
+          if [ -z "$GH_TOKEN" ]; then
+            echo "The NYUW_TOKEN_GH organization secret is unavailable."
+            exit 1
+          fi
 
       # Get the Package version based on the package.json file
       - name: Get Version
         id: version
-        uses: zoexx/github-action-json-file-properties@1.0.7
+        uses: zoexx/github-action-json-file-properties@42c424cc2a0f9dfd36c79aedb70d429c0ae3e3fa # 1.0.7
         with: 
             file_path: "${{ env.packagePath }}/package.json"
             prop_path: "version"
@@ -53,59 +75,118 @@ jobs:
       - name: Set Environment Variables
         run: |
           echo "zipFile=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}".zip >> $GITHUB_ENV
-          echo "vccUnityPackage=${{ vars.PACKAGE_NAME }}-vcc-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
           echo "assetStoreUnityPackage=${{ vars.PACKAGE_NAME }}-asset-store-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
           echo "version=${{ steps.version.outputs.value }}" >> $GITHUB_ENV
           echo "releaseTag=v${{ steps.version.outputs.value }}" >> $GITHUB_ENV
 
-      # Zip the Package for release
-      - name: Create Package Zip
-        working-directory: "${{ env.packagePath }}"
-        run: zip -r "${{ github.workspace }}/${{ env.zipFile }}" .
-      
-      - name: Track VCC UnityPackage Meta Files
-        run: find "${{ env.packagePath }}/" -name \*.meta > vccMetaList
-      
-      - name: Create VCC UnityPackage
-        uses: pCYSl5EDgo/create-unitypackage@v1.2.3
-        with:
-          package-path: ${{ env.vccUnityPackage }}
-          include-files: vccMetaList
-
-      - name: Stage Asset Store Package
-        run: |
-          python Tools/prepare_asset_store.py \
-            --source "${{ env.packagePath }}" \
-            --output "${{ env.assetStoreProject }}"
-          cd "${{ env.assetStoreProject }}"
-          find Assets -name \*.meta > assetStoreMetaList
-
-      - name: Create Asset Store UnityPackage
-        uses: pCYSl5EDgo/create-unitypackage@v1.2.3
-        with:
-          working-folder: ${{ env.assetStoreProject }}
-          project-folder: ./
-          package-path: ${{ github.workspace }}/${{ env.assetStoreUnityPackage }}
-          include-files: assetStoreMetaList
-      
-      # Upload everything while the release is mutable, then publish it.
-      # GitHub creates the tag as part of publishing the release.
-      - name: Create Draft Release
+      - name: Validate Release Does Not Exist
+        env:
+          GH_TOKEN: ${{ secrets.NYUW_TOKEN_GH }}
         run: |
           if gh release view "${{ env.releaseTag }}" >/dev/null 2>&1; then
             echo "Release ${{ env.releaseTag }} already exists."
             exit 1
           fi
 
+      - name: Stage VPM Package
+        run: |
+          mkdir -p "${{ env.vpmPackagePath }}"
+          cp -a "${{ env.packagePath }}/." "${{ env.vpmPackagePath }}/"
+          rm -rf "${{ env.vpmPackagePath }}/Tests" "${{ env.vpmPackagePath }}/Tests.meta"
+
+      - name: Create VPM Package
+        id: vpm-package
+        uses: VRLabs/VRCTools-Packaging-Action@18d055b793d93d63d2363879316fa3a8973cf38d # v1.1.2
+        with:
+          path: ${{ env.vpmPackagePath }}
+          outputPath: ${{ env.vpmOutputPath }}
+          releaseUrl: https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.value }}/${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}.zip
+          releaseVersion: ${{ steps.version.outputs.value }}
+          noUnityPackage: 'true'
+
+      - name: Stage Asset Store Package
+        run: |
+          python Tools/prepare_asset_store.py \
+            --source "${{ env.packagePath }}" \
+            --output "${{ env.assetStorePackagePath }}"
+
+      - name: Create Asset Store UnityPackage
+        id: asset-store-package
+        uses: VRLabs/VRCTools-Packaging-Action@18d055b793d93d63d2363879316fa3a8973cf38d # v1.1.2
+        with:
+          path: ${{ env.assetStorePackagePath }}
+          outputPath: ${{ env.assetStoreOutputPath }}
+          unityReleaseUrl: https://github.com/${{ github.repository }}/releases/download/v${{ steps.version.outputs.value }}/${{ vars.PACKAGE_NAME }}-asset-store-${{ steps.version.outputs.value }}.unitypackage
+          releaseVersion: ${{ steps.version.outputs.value }}
+          noVcc: 'true'
+
+      - name: Collect Release Artifacts
+        run: |
+          cp "${{ steps.vpm-package.outputs.vccPackagePath }}" "${{ github.workspace }}/${{ env.zipFile }}"
+          cp "${{ steps.asset-store-package.outputs.unityPackagePath }}" "${{ github.workspace }}/${{ env.assetStoreUnityPackage }}"
+
+      - name: Attest Release Artifacts
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: |
+            ${{ env.zipFile }}
+            ${{ env.assetStoreUnityPackage }}
+            ${{ env.packagePath }}/package.json
+
+      - name: Create Signed Release Tag
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.NYUW_GPG_PRIV }}
+          GH_TOKEN: ${{ secrets.NYUW_TOKEN_GH }}
+        run: |
+          printf '%s' "$GPG_PRIVATE_KEY" | gpg --batch --import
+
+          signing_key="$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" { print $10; exit }')"
+          if [ -z "$signing_key" ]; then
+            echo "No signing key was imported from NYUW_GPG_PRIV."
+            exit 1
+          fi
+
+          git config user.name "NyuwBot"
+          git config user.email "nyuw@aitsys.dev"
+          git config user.signingkey "$signing_key"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ env.releaseTag }}" >/dev/null 2>&1; then
+            git fetch --force origin "refs/tags/${{ env.releaseTag }}:refs/tags/${{ env.releaseTag }}"
+            tagged_commit="$(git rev-list -n 1 "${{ env.releaseTag }}")"
+            if [ "$tagged_commit" != "${{ github.sha }}" ]; then
+              echo "Tag ${{ env.releaseTag }} already points to $tagged_commit instead of ${{ github.sha }}."
+              exit 1
+            fi
+
+            git tag --verify "${{ env.releaseTag }}"
+            echo "Reusing the existing verified tag ${{ env.releaseTag }}."
+          else
+            git tag --sign "${{ env.releaseTag }}" \
+              --message "Release ${{ env.releaseTag }}" \
+              "${{ github.sha }}"
+            git tag --verify "${{ env.releaseTag }}"
+
+            auth_header="$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w 0)"
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth_header" \
+              push origin "refs/tags/${{ env.releaseTag }}"
+          fi
+
+      # Upload everything while the release is mutable, then publish it.
+      # The signed tag already exists, so GitHub must not create an unsigned one.
+      - name: Create Draft Release
+        env:
+          GH_TOKEN: ${{ secrets.NYUW_TOKEN_GH }}
+        run: |
           gh release create "${{ env.releaseTag }}" \
             "${{ env.zipFile }}" \
-            "${{ env.vccUnityPackage }}" \
             "${{ env.assetStoreUnityPackage }}" \
             "${{ env.packagePath }}/package.json" \
             --draft \
-            --target "${{ github.sha }}" \
+            --verify-tag \
             --title "${{ env.releaseTag }}" \
             --generate-notes
 
       - name: Publish Release
+        env:
+          GH_TOKEN: ${{ secrets.NYUW_TOKEN_GH }}
         run: gh release edit "${{ env.releaseTag }}" --draft=false

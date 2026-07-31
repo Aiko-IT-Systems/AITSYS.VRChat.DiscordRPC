@@ -21,14 +21,13 @@ The statistics rotation can include object, mesh, renderer, triangle, material, 
 It defaults to a 15-second interval and pauses during Build and Upload states. Statistics are
 recalculated only after the loaded scene hierarchy changes, rather than on every Discord update.
 
-The `VRChatIntegration` editor assembly is enabled whenever `com.vrchat.base` is installed,
-without enforcing a minimum SDK version. Standard Unity projects compile and run the core
-package without any VRChat assemblies.
+The VPM distribution includes a `VRChatIntegration` editor assembly which is enabled whenever
+`com.vrchat.base` is installed, without enforcing a minimum SDK version. The Asset Store
+distribution contains only the generic Unity core and has no VRChat assembly references.
 
 ## Distribution
 
-- The VPM zip and VCC Unity package include `package.json` and its VRChat Base dependency.
-- The Asset Store Unity package installs below `Assets/AITSYS/VRC Unity Discord RPC` and does
-  not install or require the VRChat SDK.
-- If a compatible VRChat SDK is later added to an Asset Store installation, its optional
-  integration assembly activates automatically.
+- The VPM zip includes the optional VRChat integration and declares its VRChat Base dependency.
+- The Asset Store Unity package installs below `Assets/AITSYS/VRC Unity Discord RPC`, contains
+  generic Unity Edit/Play support, and does not install or reference the VRChat SDK.
+- Test assemblies remain in the source repository but are omitted from release artifacts.

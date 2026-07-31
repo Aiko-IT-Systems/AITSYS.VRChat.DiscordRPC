@@ -1,7 +1,7 @@
 {
   "name": "dev.aitsys.vrc-discord-rpc",
   "displayName": "VRC Unity Discord RPC",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "unity": "2022.3",
   "unityRelease": "22f1",
   "description": "Discord Rich Presence for Unity projects with optional VRChat SDK integration.",

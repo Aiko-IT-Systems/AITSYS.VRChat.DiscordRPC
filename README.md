@@ -72,8 +72,8 @@ Then add **VRC Unity Discord RPC** to the desired project. Updates are delivered
 through the same listing.
 
 Release pages also provide a dedicated Asset Store Unity package. It installs
-under `Assets/AITSYS/VRC Unity Discord RPC`, does not require VRChat, and gains
-the optional VRChat integration automatically if a compatible SDK is present.
+under `Assets/AITSYS/VRC Unity Discord RPC`, does not require VRChat, and provides
+the generic Unity Edit and Play presence modes.
 
 The package targets Unity `2022.3.22f1` and the Windows x86_64 Editor. Discord
 Desktop must be running for Rich Presence to appear.
@@ -110,8 +110,8 @@ The distributable VPM package lives at
 host; unrelated SDKs and Unity packages are intentionally excluded.
 
 The `Build Release` GitHub Actions workflow publishes the version declared in
-the package's `package.json`. It produces a VPM zip, a VCC Unity package, and an
-SDK-independent Asset Store Unity package from the same source. Release tags
+the package's `package.json`. It produces a VPM zip for VCC/ALCOM and a generic
+Asset Store Unity package from the same source. Release tags
 use the `vX.Y.Z` convention, while the package version remains `X.Y.Z`. The
 repository variable `PACKAGE_NAME` must remain `dev.aitsys.vrc-discord-rpc`.
 

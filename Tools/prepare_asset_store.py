@@ -1,40 +1,25 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import shutil
 import uuid
 from pathlib import Path
 
 
-ASSET_ROOT = Path("Assets") / "AITSYS" / "VRC Unity Discord RPC"
+ASSET_DESTINATION = "Assets/AITSYS/VRC Unity Discord RPC"
 EXCLUDED_NAMES = {
     "Tests",
     "Tests.meta",
-    "package.json",
-    "package.json.meta",
+    "VRChatIntegration",
+    "VRChatIntegration.meta",
 }
 
 
-def folder_meta(relative_path: Path) -> str:
-    guid = uuid.uuid5(
+def folder_guid(path: str) -> str:
+    return uuid.uuid5(
         uuid.NAMESPACE_URL,
-        "dev.aitsys.vrc-discord-rpc/asset-store/" + relative_path.as_posix(),
+        "dev.aitsys.vrc-discord-rpc/asset-store/" + path,
     ).hex
-    return (
-        "fileFormatVersion: 2\n"
-        f"guid: {guid}\n"
-        "folderAsset: yes\n"
-        "DefaultImporter:\n"
-        "  externalObjects: {}\n"
-        "  userData: \n"
-        "  assetBundleName: \n"
-        "  assetBundleVariant: \n"
-    )
-
-
-def write_folder_meta(project_root: Path, folder: Path) -> None:
-    relative = folder.relative_to(project_root)
-    meta_path = folder.with_name(folder.name + ".meta")
-    meta_path.write_text(folder_meta(relative), encoding="utf-8", newline="\n")
 
 
 def prepare(source: Path, output: Path) -> Path:
@@ -43,27 +28,41 @@ def prepare(source: Path, output: Path) -> Path:
     if output.exists():
         shutil.rmtree(output)
 
-    destination = output / ASSET_ROOT
-    destination.mkdir(parents=True)
+    output.mkdir(parents=True)
 
     for child in source.iterdir():
         if child.name in EXCLUDED_NAMES:
             continue
 
-        target = destination / child.name
+        target = output / child.name
         if child.is_dir():
-            shutil.copytree(child, target)
+            shutil.copytree(
+                child,
+                target,
+                ignore=shutil.ignore_patterns(*EXCLUDED_NAMES),
+            )
         else:
             shutil.copy2(child, target)
 
-    write_folder_meta(output, output / "Assets" / "AITSYS")
-    write_folder_meta(output, destination)
-    return destination
+    package_json_path = output / "package.json"
+    package_json = json.loads(package_json_path.read_text(encoding="utf-8"))
+    package_json["unityPackageDestinationFolder"] = ASSET_DESTINATION
+    package_json["unityPackageDestinationFolderMetas"] = {
+        "Assets/AITSYS": folder_guid("Assets/AITSYS"),
+        ASSET_DESTINATION: folder_guid(ASSET_DESTINATION),
+    }
+    package_json.pop("vpmDependencies", None)
+    package_json_path.write_text(
+        json.dumps(package_json, indent=2) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    return output
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Stage the SDK-optional Asset Store Unity package layout."
+        description="Stage the generic Unity Asset Store package layout."
     )
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
