@@ -60,7 +60,7 @@ Without a compatible VRChat SDK and descriptor, Rich Presence uses the Unity
 project name and provides Edit/Play state plus the enabled scene statistics.
 The settings page explains the detected context.
 
-![Unsupported project status](images/autodetected_unsupported_rpc_settings.png)
+![Unsupported project status](images/autodetected_non_vrc_rpc_settings.png)
 
 ## Installation
 
