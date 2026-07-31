@@ -16,10 +16,30 @@ namespace AITSYS.VRCUnity.DiscordRPC.Tests
         }
 
         [Test]
-        public void InstalledSdkDetectionHasAnExplanation()
+        public void ProjectDetectionHasAnExplanation()
         {
-            ProjectContext.DetectInstalledSdk(out string reason);
-            Assert.IsFalse(string.IsNullOrWhiteSpace(reason));
+            ProjectContext context = ProjectContext.Resolve();
+            Assert.IsNotNull(context);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(context.Reason));
+            Assert.IsFalse(string.IsNullOrWhiteSpace(context.DisplayName));
+        }
+
+        [Test]
+        public void SceneStatisticsProduceCompactRotationLines()
+        {
+            var statistics = new SceneStatistics { ObjectCount = 1234L };
+
+            var lines = statistics.BuildLines(RpcStatFlags.Objects | RpcStatFlags.LastBuildSize, 1572864);
+
+            CollectionAssert.AreEqual(new[] { "1,234 Objects", "Build Size: 1.5 MB" }, lines);
+        }
+
+        [Test]
+        public void DiscordActivityTextNeverExceedsItsLimit()
+        {
+            string result = DiscordText.ClampActivityText(new string('x', 200));
+
+            Assert.AreEqual(DiscordText.ActivityTextLimit, result.Length);
         }
     }
 }

@@ -1,6 +1,6 @@
 # VRC Unity Discord RPC
 
-Discord Rich Presence for Unity projects using the VRChat SDK.
+Discord Rich Presence for Unity projects with optional VRChat SDK integration.
 
 The package shows what kind of VRChat project you are working on and whether
 you are editing, testing, building, or uploading it. It runs entirely inside
@@ -12,8 +12,11 @@ the Windows Unity Editor and is not included in uploaded worlds or avatars.
 
 ## Features
 
-- Automatically detects VRChat World and Avatar projects.
-- Reports Edit Mode, Play Mode, Build, and Upload states to Discord.
+- Works in standard Unity projects without requiring the VRChat SDK.
+- Reports Edit Mode and Play Mode to Discord.
+- Automatically detects VRChat World and Avatar projects when their SDK is installed.
+- Adds VRChat Build and Upload states through the optional SDK integration.
+- Rotates configurable object, mesh, renderer, triangle, material, light, and build-size statistics.
 - Restarts the elapsed activity timer when your workflow state changes.
 - Uses the active scene's descriptor when multiple scenes are loaded.
 - Refreshes automatically when scenes, descriptors, or blueprint IDs change.
@@ -51,11 +54,11 @@ between scenes with different world descriptors updates the presence.
 
 ![World upload activity in Discord](images/world_upload_mode.png)
 
-### Unsupported Projects
+### Standard Unity Projects
 
-Rich Presence remains inactive when no supported descriptor is loaded, when
-neither SDK is installed, or when both the Worlds and Avatars SDKs make the
-project type ambiguous. The settings page explains the detected condition.
+Without a compatible VRChat SDK and descriptor, Rich Presence uses the Unity
+project name and provides Edit/Play state plus the enabled scene statistics.
+The settings page explains the detected context.
 
 ![Unsupported project status](images/autodetected_unsupported_rpc_settings.png)
 
@@ -67,6 +70,10 @@ Add the [AITSYS VCC](https://vcc.aitsys.dev) listing to the VRChat Creator Compa
 
 Then add **VRC Unity Discord RPC** to the desired project. Updates are delivered
 through the same listing.
+
+Release pages also provide a dedicated Asset Store Unity package. It installs
+under `Assets/AITSYS/VRC Unity Discord RPC`, does not require VRChat, and gains
+the optional VRChat integration automatically if a compatible SDK is present.
 
 The package targets Unity `2022.3.22f1` and the Windows x86_64 Editor. Discord
 Desktop must be running for Rich Presence to appear.
@@ -93,7 +100,7 @@ component.
 - Package ID: `dev.aitsys.vrc-discord-rpc`
 - Unity: `2022.3.22f1`
 - Platform: Windows Editor x86_64
-- VPM dependency: `com.vrchat.base >= 3.10.0`
+- VPM dependency: any installed `com.vrchat.base` version
 - Settings: `AITSYS > VRC Unity > Discord RPC Settings`
 
 ## Development
@@ -103,9 +110,10 @@ The distributable VPM package lives at
 host; unrelated SDKs and Unity packages are intentionally excluded.
 
 The `Build Release` GitHub Actions workflow publishes the version declared in
-the package's `package.json`. Release tags use the `vX.Y.Z` convention, while
-the package version remains `X.Y.Z`. The repository variable `PACKAGE_NAME`
-must remain `dev.aitsys.vrc-discord-rpc`.
+the package's `package.json`. It produces a VPM zip, a VCC Unity package, and an
+SDK-independent Asset Store Unity package from the same source. Release tags
+use the `vX.Y.Z` convention, while the package version remains `X.Y.Z`. The
+repository variable `PACKAGE_NAME` must remain `dev.aitsys.vrc-discord-rpc`.
 
 ## License
 

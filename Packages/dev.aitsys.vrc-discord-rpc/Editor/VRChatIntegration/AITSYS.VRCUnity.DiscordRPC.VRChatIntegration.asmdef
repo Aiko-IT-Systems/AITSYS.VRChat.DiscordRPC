@@ -1,0 +1,28 @@
+{
+  "name": "AITSYS.VRCUnity.DiscordRPC.VRChatIntegration",
+  "rootNamespace": "AITSYS.VRCUnity.DiscordRPC",
+  "references": [
+    "AITSYS.VRCUnity.DiscordRPC.Editor",
+    "VRC.SDKBase",
+    "VRC.SDKBase.Editor"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [
+    "AITSYS_VRC_SDK_BASE"
+  ],
+  "versionDefines": [
+    {
+      "name": "com.vrchat.base",
+      "expression": "0.0.0",
+      "define": "AITSYS_VRC_SDK_BASE"
+    }
+  ],
+  "noEngineReferences": false
+}

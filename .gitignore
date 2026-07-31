@@ -78,3 +78,5 @@ ProjectSettings/TimeManager.asset
 ProjectSettings/UnityConnectSettings.asset
 ProjectSettings/VFXManager.asset
 ProjectSettings/XRSettings.asset
+.build/
+/Tools/__pycache__

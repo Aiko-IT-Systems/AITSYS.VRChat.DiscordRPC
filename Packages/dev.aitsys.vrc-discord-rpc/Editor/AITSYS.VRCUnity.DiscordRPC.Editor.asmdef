@@ -2,9 +2,7 @@
   "name": "AITSYS.VRCUnity.DiscordRPC.Editor",
   "rootNamespace": "AITSYS.VRCUnity.DiscordRPC",
   "references": [
-    "AITSYS.VRCUnity.DiscordRPC.Compatibility",
-    "VRC.SDKBase",
-    "VRC.SDKBase.Editor"
+    "AITSYS.VRCUnity.DiscordRPC.Compatibility"
   ],
   "includePlatforms": [
     "Editor"

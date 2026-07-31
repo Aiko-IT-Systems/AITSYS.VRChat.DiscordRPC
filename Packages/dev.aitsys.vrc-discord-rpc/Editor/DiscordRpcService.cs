@@ -3,7 +3,6 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using VRC.Core;
 
 namespace AITSYS.VRCUnity.DiscordRPC
 {
@@ -18,8 +17,8 @@ namespace AITSYS.VRCUnity.DiscordRPC
 
         private static RpcState state = RpcState.EditMode;
         private static long timestamp = UnixTimestamp();
+        private static string activeContextIdentity;
         private static string activeBlueprintId;
-        private static string activeDescriptorName;
         private static string metadataImageUrl;
         private static string metadataDisplayName;
         private static string lastWarningKey;
@@ -28,8 +27,10 @@ namespace AITSYS.VRCUnity.DiscordRPC
         private static bool initialized;
         private static bool metadataRequestInFlight;
         private static bool refreshQueued;
+        private static double nextStatRotation;
+        private static string lastPresenceSignature;
 
-        internal static string Status { get; private set; } = "Waiting for a supported VRChat context.";
+        internal static string Status { get; private set; } = "Waiting for a Unity project context.";
 
         static DiscordRpcService()
         {
@@ -48,7 +49,21 @@ namespace AITSYS.VRCUnity.DiscordRPC
             if (resetTime)
                 timestamp = UnixTimestamp();
 
+            SceneStatisticsCache.Refresh(true);
+            ScheduleNextStatRotation();
             RefreshNow(false);
+        }
+
+        internal static void StatisticsSettingsChanged()
+        {
+            SceneStatisticsCache.Refresh(true);
+            ScheduleNextStatRotation();
+            RefreshNow(false);
+        }
+
+        internal static void QueueIntegrationRefresh()
+        {
+            QueueRefresh();
         }
 
         internal static void RefreshNow(bool fetchMetadata = true)
@@ -61,30 +76,25 @@ namespace AITSYS.VRCUnity.DiscordRPC
                 return;
             }
 
-            if (!ProjectContext.TryFind(out ProjectContext context))
-            {
-                Status = context.Reason;
-                Shutdown();
-                return;
-            }
-
+            ProjectContext context = ProjectContext.Resolve();
             if (!EnsureInitialized())
                 return;
 
-            string blueprintId = context.Pipeline.blueprintId ?? string.Empty;
-            if (blueprintId != activeBlueprintId)
+            if (context.Identity != activeContextIdentity)
             {
-                activeBlueprintId = blueprintId;
+                activeContextIdentity = context.Identity;
+                activeBlueprintId = context.BlueprintId ?? string.Empty;
                 ResetMetadata();
                 fetchMetadata = true;
             }
 
-            activeDescriptorName = context.Descriptor.name;
             ApplyPresence(context);
-            Status = "Connected for " + context.ProjectType + " project '" + context.Descriptor.name + "'.";
+            if (nextStatRotation <= EditorApplication.timeSinceStartup)
+                ScheduleNextStatRotation();
 
-            if (fetchMetadata && !string.IsNullOrEmpty(blueprintId) && !metadataRequestInFlight)
-                FetchMetadata(context.ProjectType, blueprintId);
+            Status = "Connected for " + context.ProjectType + " project '" + context.DisplayName + "'.";
+            if (fetchMetadata && context.SupportsMetadata && !metadataRequestInFlight)
+                FetchMetadata(context);
         }
 
         internal static void ClearPresence()
@@ -100,25 +110,30 @@ namespace AITSYS.VRCUnity.DiscordRPC
                 return;
 
             nextPoll = now + ContextPollInterval;
-            if (!VRCUnityDiscordRPCSettings.instance.enabled)
+            VRCUnityDiscordRPCSettings settings = VRCUnityDiscordRPCSettings.instance;
+            if (!settings.enabled)
             {
                 Shutdown();
                 return;
             }
 
-            if (!ProjectContext.TryFind(out ProjectContext context))
-            {
-                Status = context.Reason;
-                Shutdown();
-                return;
-            }
-
-            string blueprintId = context.Pipeline.blueprintId ?? string.Empty;
-            bool changed = blueprintId != activeBlueprintId || context.Descriptor.name != activeDescriptorName;
-            if (changed || (!HasMetadata() && !metadataRequestInFlight &&
-                            !string.IsNullOrEmpty(blueprintId) && now >= nextMetadataRetry))
+            ProjectContext context = ProjectContext.Resolve();
+            bool changed = context.Identity != activeContextIdentity;
+            bool shouldRetryMetadata = context.SupportsMetadata &&
+                                       !HasMetadata() &&
+                                       !metadataRequestInFlight &&
+                                       now >= nextMetadataRetry;
+            if (changed || shouldRetryMetadata)
             {
                 RefreshNow(true);
+                return;
+            }
+
+            if (settings.showSceneStats && state.SupportsStatistics() && now >= nextStatRotation)
+            {
+                SceneStatisticsCache.Advance();
+                ScheduleNextStatRotation();
+                ApplyPresence(context);
             }
         }
 
@@ -146,19 +161,38 @@ namespace AITSYS.VRCUnity.DiscordRPC
 
         private static void ApplyPresence(ProjectContext context)
         {
-            Presence.details = "In Project: " + context.Descriptor.name;
-            Presence.state = "Currently " + state.DisplayName();
+            VRCUnityDiscordRPCSettings settings = VRCUnityDiscordRPCSettings.instance;
+            string stateText = "Currently " + state.DisplayName();
+            if (settings.showSceneStats && state.SupportsStatistics())
+            {
+                string statistic = SceneStatisticsCache.CurrentLine(settings);
+                if (!string.IsNullOrEmpty(statistic))
+                    stateText += " | " + statistic;
+            }
+
+            Presence.details = DiscordText.ClampActivityText("In Project: " + context.DisplayName);
+            Presence.state = DiscordText.ClampActivityText(stateText);
             Presence.startTimestamp = timestamp;
             Presence.smallImageKey = "unity-white";
-            Presence.smallImageText = "Unity " + UnityVersion;
+            Presence.smallImageText = DiscordText.ClampActivityText("Unity " + UnityVersion);
             Presence.largeImageKey = metadataImageUrl;
-            Presence.largeImageText = string.IsNullOrEmpty(metadataDisplayName)
-                ? context.Descriptor.name
-                : metadataDisplayName + " (" + context.Pipeline.blueprintId + ")";
+
+            string largeText = string.IsNullOrEmpty(metadataDisplayName)
+                ? context.DisplayName
+                : metadataDisplayName;
+            if (!string.IsNullOrEmpty(context.BlueprintId) && !string.IsNullOrEmpty(metadataDisplayName))
+                largeText += " (" + context.BlueprintId + ")";
+            Presence.largeImageText = DiscordText.ClampActivityText(largeText);
+
+            string signature = Presence.details + "\n" + Presence.state + "\n" + Presence.startTimestamp + "\n" +
+                               Presence.largeImageKey + "\n" + Presence.largeImageText;
+            if (signature == lastPresenceSignature)
+                return;
 
             try
             {
                 DiscordRpcNative.UpdatePresence(Presence);
+                lastPresenceSignature = signature;
             }
             catch (Exception exception)
             {
@@ -167,77 +201,50 @@ namespace AITSYS.VRCUnity.DiscordRPC
             }
         }
 
-        private static void FetchMetadata(VrcProjectType projectType, string blueprintId)
+        private static void FetchMetadata(ProjectContext context)
         {
+            string blueprintId = context.BlueprintId;
             metadataRequestInFlight = true;
             nextMetadataRetry = EditorApplication.timeSinceStartup + MetadataRetryInterval;
 
-            if (projectType == VrcProjectType.World)
-            {
-                var requested = new ApiWorld { id = blueprintId };
-                requested.Fetch(
-                    container => CompleteWorldFetch(blueprintId, requested, container),
-                    container => FailMetadataFetch(blueprintId, container),
-                    null,
-                    true);
-            }
-            else
-            {
-                var requested = new ApiAvatar { id = blueprintId };
-                requested.Fetch(
-                    container => CompleteAvatarFetch(blueprintId, requested, container),
-                    container => FailMetadataFetch(blueprintId, container),
-                    null,
-                    true);
-            }
+            bool started = ProjectContext.TryFetchMetadata(
+                context,
+                metadata => CompleteMetadataFetch(blueprintId, metadata),
+                error => FailMetadataFetch(blueprintId, error));
+            if (!started)
+                metadataRequestInFlight = false;
         }
 
-        private static void CompleteWorldFetch(string blueprintId, ApiWorld requested, ApiContainer container)
+        private static void CompleteMetadataFetch(string blueprintId, ProjectMetadata metadata)
         {
             metadataRequestInFlight = false;
             if (!IsCurrentBlueprint(blueprintId))
                 return;
 
-            ApiWorld world = container != null && container.Model is ApiWorld fetched ? fetched : requested;
-            metadataImageUrl = world.imageUrl;
-            metadataDisplayName = world.name;
+            metadataImageUrl = metadata?.ImageUrl;
+            metadataDisplayName = metadata?.DisplayName;
             lastWarningKey = null;
             RefreshNow(false);
         }
 
-        private static void CompleteAvatarFetch(string blueprintId, ApiAvatar requested, ApiContainer container)
+        private static void FailMetadataFetch(string blueprintId, string error)
         {
             metadataRequestInFlight = false;
             if (!IsCurrentBlueprint(blueprintId))
                 return;
 
-            ApiAvatar avatar = container != null && container.Model is ApiAvatar fetched ? fetched : requested;
-            metadataImageUrl = avatar.imageUrl;
-            metadataDisplayName = avatar.name;
-            lastWarningKey = null;
-            RefreshNow(false);
-        }
-
-        private static void FailMetadataFetch(string blueprintId, ApiContainer container)
-        {
-            metadataRequestInFlight = false;
-            if (!IsCurrentBlueprint(blueprintId))
-                return;
-
-            string error = container == null || string.IsNullOrEmpty(container.Error)
-                ? "unknown API error"
-                : container.Error;
+            string message = string.IsNullOrEmpty(error) ? "unknown API error" : error;
             Status = "Using local project details; VRChat metadata fetch failed and will retry later.";
-            WarnOnce("metadata:" + blueprintId, Status + " " + error);
+            WarnOnce("metadata:" + blueprintId, Status + " " + message);
             RefreshNow(false);
         }
 
         private static bool IsCurrentBlueprint(string blueprintId)
         {
+            ProjectContext context = ProjectContext.Resolve();
             return initialized &&
                    blueprintId == activeBlueprintId &&
-                   ProjectContext.TryFind(out ProjectContext context) &&
-                   context.Pipeline.blueprintId == blueprintId;
+                   context.BlueprintId == blueprintId;
         }
 
         private static bool HasMetadata()
@@ -255,29 +262,29 @@ namespace AITSYS.VRCUnity.DiscordRPC
 
         private static void Shutdown()
         {
-            if (!initialized)
-                return;
+            if (initialized)
+            {
+                try
+                {
+                    DiscordRpcNative.ClearPresence();
+                    DiscordRpcNative.Shutdown();
+                }
+                catch
+                {
+                    // Native plugins can unload before Unity's managed domain callbacks.
+                }
+            }
 
-            try
-            {
-                DiscordRpcNative.ClearPresence();
-                DiscordRpcNative.Shutdown();
-            }
-            catch
-            {
-                // Native plugins can unload before Unity's managed domain callbacks.
-            }
-            finally
-            {
-                initialized = false;
-                activeBlueprintId = null;
-                activeDescriptorName = null;
-                ResetMetadata();
-            }
+            initialized = false;
+            activeContextIdentity = null;
+            activeBlueprintId = null;
+            lastPresenceSignature = null;
+            ResetMetadata();
         }
 
         private static void QueueRefresh()
         {
+            SceneStatisticsCache.MarkDirty();
             if (refreshQueued)
                 return;
 
@@ -319,6 +326,12 @@ namespace AITSYS.VRCUnity.DiscordRPC
         private static long UnixTimestamp()
         {
             return (long)(DateTime.UtcNow - new DateTime(1970, 1, 1)).TotalSeconds;
+        }
+
+        private static void ScheduleNextStatRotation()
+        {
+            int seconds = Mathf.Clamp(VRCUnityDiscordRPCSettings.instance.statCycleSeconds, 5, 120);
+            nextStatRotation = EditorApplication.timeSinceStartup + seconds;
         }
     }
 }

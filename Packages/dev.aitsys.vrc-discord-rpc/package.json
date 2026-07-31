@@ -1,10 +1,10 @@
 {
   "name": "dev.aitsys.vrc-discord-rpc",
   "displayName": "VRC Unity Discord RPC",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "unity": "2022.3",
   "unityRelease": "22f1",
-  "description": "Discord Rich Presence for Unity projects using the VRChat SDK.",
+  "description": "Discord Rich Presence for Unity projects with optional VRChat SDK integration.",
   "license": "MIT",
   "documentationUrl": "https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC/tree/main/Packages/dev.aitsys.vrc-discord-rpc#readme",
   "changelogUrl": "https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC/blob/main/Packages/dev.aitsys.vrc-discord-rpc/CHANGELOG.md",
@@ -13,6 +13,7 @@
     "AITSYS",
     "Discord",
     "Rich Presence",
+    "Unity",
     "VRChat"
   ],
   "author": {
@@ -31,6 +32,6 @@
     "Assets/AITSYS/Runtime/Scripts/DiscordRPCSettings.cs.meta": ""
   },
   "vpmDependencies": {
-    "com.vrchat.base": ">=3.10.0"
+    "com.vrchat.base": ">=0.0.0"
   }
 }

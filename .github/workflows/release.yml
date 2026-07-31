@@ -32,6 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       packagePath: Packages/${{ vars.PACKAGE_NAME }}
+      assetStoreProject: .build/asset-store-project
       GH_TOKEN: ${{ github.token }}
     if: needs.config.outputs.config_package == 'true'
     steps:
@@ -52,7 +53,8 @@ jobs:
       - name: Set Environment Variables
         run: |
           echo "zipFile=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}".zip >> $GITHUB_ENV
-          echo "unityPackage=${{ vars.PACKAGE_NAME }}-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
+          echo "vccUnityPackage=${{ vars.PACKAGE_NAME }}-vcc-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
+          echo "assetStoreUnityPackage=${{ vars.PACKAGE_NAME }}-asset-store-${{ steps.version.outputs.value }}.unitypackage" >> $GITHUB_ENV
           echo "version=${{ steps.version.outputs.value }}" >> $GITHUB_ENV
           echo "releaseTag=v${{ steps.version.outputs.value }}" >> $GITHUB_ENV
 
@@ -61,16 +63,30 @@ jobs:
         working-directory: "${{ env.packagePath }}"
         run: zip -r "${{ github.workspace }}/${{ env.zipFile }}" .
       
-      # Build a list of .meta files for future use
-      - name: Track Package Meta Files
-        run: find "${{ env.packagePath }}/" -name \*.meta >> metaList
+      - name: Track VCC UnityPackage Meta Files
+        run: find "${{ env.packagePath }}/" -name \*.meta > vccMetaList
       
-      # Make a UnityPackage version of the Package for release
-      - name: Create UnityPackage
+      - name: Create VCC UnityPackage
         uses: pCYSl5EDgo/create-unitypackage@v1.2.3
         with:
-          package-path: ${{ env.unityPackage }}
-          include-files: metaList
+          package-path: ${{ env.vccUnityPackage }}
+          include-files: vccMetaList
+
+      - name: Stage Asset Store Package
+        run: |
+          python Tools/prepare_asset_store.py \
+            --source "${{ env.packagePath }}" \
+            --output "${{ env.assetStoreProject }}"
+          cd "${{ env.assetStoreProject }}"
+          find Assets -name \*.meta > assetStoreMetaList
+
+      - name: Create Asset Store UnityPackage
+        uses: pCYSl5EDgo/create-unitypackage@v1.2.3
+        with:
+          working-folder: ${{ env.assetStoreProject }}
+          project-folder: ./
+          package-path: ${{ github.workspace }}/${{ env.assetStoreUnityPackage }}
+          include-files: assetStoreMetaList
       
       # Upload everything while the release is mutable, then publish it.
       # GitHub creates the tag as part of publishing the release.
@@ -83,7 +99,8 @@ jobs:
 
           gh release create "${{ env.releaseTag }}" \
             "${{ env.zipFile }}" \
-            "${{ env.unityPackage }}" \
+            "${{ env.vccUnityPackage }}" \
+            "${{ env.assetStoreUnityPackage }}" \
             "${{ env.packagePath }}/package.json" \
             --draft \
             --target "${{ github.sha }}" \

@@ -12,6 +12,11 @@ namespace AITSYS.VRCUnity.DiscordRPC
 
     internal static class RpcStateExtensions
     {
+        internal static bool SupportsStatistics(this RpcState state)
+        {
+            return state == RpcState.EditMode || state == RpcState.PlayMode;
+        }
+
         internal static string DisplayName(this RpcState state)
         {
             switch (state)
