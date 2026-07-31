@@ -79,4 +79,10 @@ ProjectSettings/UnityConnectSettings.asset
 ProjectSettings/VFXManager.asset
 ProjectSettings/XRSettings.asset
 .build/
-/Tools/__pycache__
+Tools/__pycache__
+Packages/com.vrchat.core.vpm-resolver
+ProjectSettings/MemorySettings.asset
+ProjectSettings/VersionControlSettings.asset
+UserSettings/EditorUserSettings.asset
+UserSettings/Search.settings
+UserSettings/Layouts/default-2022.dwlt
