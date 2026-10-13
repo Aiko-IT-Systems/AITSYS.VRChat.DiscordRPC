@@ -78,6 +78,10 @@ the generic Unity Edit and Play presence modes.
 The package targets Unity `2022.3.22f1` and the Windows x86_64 Editor. Discord
 Desktop must be running for Rich Presence to appear.
 
+Alternatively you can add it through Unitys package manager by entering `https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC.git?path=Packages/dev.aitsys.vrc-discord-rpc#main` as git url.
+
+This does not include VRChat dependencies.
+
 ## Settings
 
 Open `AITSYS > VRC Unity > Discord RPC Settings`.
