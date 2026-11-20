@@ -21,9 +21,10 @@ The statistics rotation can include object, mesh, renderer, triangle, material, 
 It defaults to a 15-second interval and pauses during Build and Upload states. Statistics are
 recalculated only after the loaded scene hierarchy changes, rather than on every Discord update.
 
-The VPM distribution includes a `VRChatIntegration` editor assembly which is enabled whenever
-`com.vrchat.base` is installed, without enforcing a minimum SDK version. The Asset Store
-distribution contains only the generic Unity core and has no VRChat assembly references.
+Version 2.0.0 targets Unity `6000.0.67f1` or later. The VPM distribution requires
+`com.vrchat.base` `3.11.0-beta.1` or later and includes the `VRChatIntegration` editor
+assembly. The Asset Store distribution contains only the generic Unity core and has no
+VRChat assembly references.
 
 ## Distribution
 

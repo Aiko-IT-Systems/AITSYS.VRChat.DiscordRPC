@@ -75,7 +75,7 @@ Release pages also provide a dedicated Asset Store Unity package. It installs
 under `Assets/AITSYS/VRC Unity Discord RPC`, does not require VRChat, and provides
 the generic Unity Edit and Play presence modes.
 
-The package targets Unity `2022.3.22f1` and the Windows x86_64 Editor. Discord
+The package targets Unity `6000.0.67f1` and the Windows x86_64 Editor. Discord
 Desktop must be running for Rich Presence to appear.
 
 Alternatively you can add it through Unitys package manager by entering `https://github.com/Aiko-IT-Systems/AITSYS.VRChat.DiscordRPC.git?path=Packages/dev.aitsys.vrc-discord-rpc#main` as git url.
@@ -102,9 +102,9 @@ component.
 ## Package
 
 - Package ID: `dev.aitsys.vrc-discord-rpc`
-- Unity: `2022.3.22f1`
+- Unity: `6000.0.67f1`
 - Platform: Windows Editor x86_64
-- VPM dependency: any installed `com.vrchat.base` version
+- VPM dependency: `com.vrchat.base` `>=3.11.0-beta.1`
 - Settings: `AITSYS > VRC Unity > Discord RPC Settings`
 
 ## Development
